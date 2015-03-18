@@ -5,6 +5,8 @@ import time
 
 import sensor_config
 
+from transmit import send_data
+
 SENSOR_CFG = sensor_config.CONFIG
 
 def create_logfilepath(datapoint, logdir):
@@ -33,7 +35,8 @@ def tracked(log_function):
         track['count'] = (count < max_datapoints) and count or 0
         if not track['count']:
             print("closing logfile %s.." % track['logfile'])
-            os.rename(track['logfile'], re.sub('L', 'C', track['logfile']))
+            os.rename(track['logfile'],
+                      re.sub('L(?=\d{10})', 'C', track['logfile']))
             track['logfile'] = None
     return tracked_log
 
@@ -42,22 +45,38 @@ def log_datapoint(datapoint, logfile):
     print('logging datapoint %s to file %s' % (datapoint, logfile))
     with open(logfile, 'a') as f:
         f.write(datapoint)
-    
+
 def run():
     sensors = [{'name': sr['name'], 'res': sr['res'],
                 'kwargs': sr['kwargs'], 'sense': sr['sensor'].setup()}
                for sr in SENSOR_CFG['sensors']]
     prev = None
+
+    logdir = SENSOR_CFG['logdir']
+    closed_logfiles = (f for f in os.listdir(logdir) if f.startswith('C'))
     while True:
         ts = datetime.now()
-        if ts.second != prev and ts.second % SENSOR_CFG['collect-res'] == 0:
+        if ts.second == prev:
+            continue
+        if ts.second % SENSOR_CFG['collect-res'] == 0:
             for sr in sensors:
                 if ts.second % sr['res'] == 0:
                     dp = '(%s %s %s)' % (sr['name'], ts.strftime('%s'),
                                          sr['sense'](**sr['kwargs']))
-                    log_datapoint(dp, max_datapoints=SENSOR_CFG['max_dp'],
-                                  logdir=SENSOR_CFG['logdir'])
-            prev = ts.second
+                    log_datapoint(dp, SENSOR_CFG['max_dp'], logdir)
+        if ts.second % SENSOR_CFG['send-res'] == 0:
+            try:
+                next_file = closed_logfiles.next()
+            except StopIteration: # last filelist used? try to create new one
+                closed_logfiles = (f for f in os.listdir(logdir)
+                                   if f.startswith('C'))
+                try:
+                    next_file = closed_logfiles.next()
+                except StopIteration:
+                    continue # nothing to send
+            send_data(next_file)
+
+        prev = ts.second
 
 if __name__ == '__main__':
     run()
