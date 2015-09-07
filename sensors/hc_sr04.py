@@ -4,53 +4,23 @@ import time
 TRIG, ECHO = 17, 18
 
 def setup(trigger=TRIG, echo=ECHO):
-    import RPi.GPIO as GPIO
-    GPIO.setmode(GPIO.BCM)
+    import hcsr04sensor.sensor as sensor
 
-    GPIO.setup(trigger,GPIO.OUT)
-    GPIO.setup(echo,GPIO.IN)
-    GPIO.output(trigger, False)
-    print("Waiting For Sensor To Settle")
-    time.sleep(2)
+    # todo: the temperature could actually be taken by another
+    # sensor, it then would have to live rather in the actual
+    # method that takes the measurment
+    m = sensor.Measurement(TRIG, ECHO, 20, 'metric', 1)
 
     def sense():
         """
         Sonar distance sensor
         """
+        return m.distance_metric(m.raw_distance(1))
 
-        GPIO.output(trigger, True)
-        time.sleep(0.0001)
-        GPIO.output(trigger, False)
-
-        while GPIO.input(echo) == 0:
-            pulse_start = time.time()
-
-        while GPIO.input(echo) == 1:
-            pulse_end = time.time()
-
-        pulse_duration = pulse_end - pulse_start
-        distance = pulse_duration * 17150
-        GPIO.output(trigger, False)
-        return round(distance, 2)
-
-        # TODO: do we need this???
-        ##GPIO.cleanup()
-
-    def outliers_cleaned():
+    def unchanged(**kwargs):
         """
-        Remove outliers, which are defined as having a distance from the mean
-        of five measurments bigger than two standard deviations.
-
-        Returns the mean of the remaining measurments.
+        Do whatever is the simplest to spit out a measurment
         """
-        measurments = [sense() for i in range(5)]
-        print("measurments to be outlier cleaned: %s" % measurments)
+        return sense()
 
-        mean = lambda values: sum(values) / len(values)
-        avg = mean(measurments)
-        variance = map(lambda x: (x - avg) ** 2, measurments)
-        stdev = math.sqrt(mean(variance))
-        measurments = [m for m in measurments if abs(m - avg) <= stdev]
-        return mean(measurments)
-
-    return outliers_cleaned
+    return unchanged
