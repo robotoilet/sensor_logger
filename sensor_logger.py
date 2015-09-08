@@ -74,7 +74,11 @@ def run():
                     next_file = closed_logfiles.next()
                 except StopIteration:
                     continue # nothing to send
-            send_data(next_file)
+            try:
+                send_data(next_file)
+            except Exception as e:
+                msg = "Could not send data, exception was: {}"
+                print(msg.format(e))
 
         prev = ts.second
 
