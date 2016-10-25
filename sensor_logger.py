@@ -58,16 +58,16 @@ def run():
         ts = datetime.now()
         if ts.second == prev:
             continue
-        if ts.second % SENSOR_CFG['collect-res'] == 0:
-            for sr in sensors:
-                if ts.second % sr['res'] == 0:
-                    dp = '(%s %s %s)' % (sr['name'], ts.strftime('%s'),
-                                         sr['sense'](**sr['kwargs']))
-                    try:
-                      log_datapoint(dp, SENSOR_CFG['max_dp'], logdir)
-                    except Exception as e:
-                      msg = "could not get data for sensor {}, exeption was {}"
-                      print(msg.format(sr['name'], e))
+        #if ts.second % SENSOR_CFG['collect-res'] == 0:
+        #    for sr in sensors:
+        #        if ts.second % sr['res'] == 0:
+        #            dp = '(%s %s %s)' % (sr['name'], ts.strftime('%s'),
+        #                                 sr['sense'](**sr['kwargs']))
+        #            try:
+        #              log_datapoint(dp, SENSOR_CFG['max_dp'], logdir)
+        #            except Exception as e:
+        #              msg = "could not get data for sensor {}, exeption was {}"
+        #              print(msg.format(sr['name'], e))
         if ts.second % SENSOR_CFG['send-res'] == 0:
             try:
                 next_file = closed_logfiles.next()
